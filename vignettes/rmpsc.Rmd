@@ -1,0 +1,374 @@
+---
+title: "rmspc User Guide"
+author: "Vahid Jalili, Marzia Angela Cremona, Fernando Palluzzi, Meriem Bahda"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+vignette: >
+    %\VignetteIndexEntry{User guide to the rmspc package}
+    %\VignetteKeywords{ChIPSeq, Sequencing, ChipOnChip}
+    %\VignettePackage{rmspc}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
+output:
+    BiocStyle::html_document:
+        number_sections: yes
+        toc: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# MSPC
+
+The analysis of ChIP-seq samples outputs a number of enriched regions
+(commonly known as "peaks"), each indicating a protein-DNA interaction
+or a specific chromatin modification. When replicate samples 
+are analyzed, overlapping peaks are expected. This repeated evidence
+can therefore be used to locally lower the minimum significance 
+required to accept a peak. [MSPC](https://genometric.github.io/MSPC/)
+is a method for joint analysis of weak peaks. Given a set of peaks from
+(biological or technical) replicates, MSPC combines the p-values of
+overlapping enriched regions, and allows the "rescue" of weak peaks
+occurring in more than one replicate. In other words, MSPC comparatively 
+evaluates ChIP-seq peaks and combines the statistical significance of
+repeated evidences, with the aim of lowering the minimum significance
+required to “rescue” weak peaks; hence reducing false-negatives.
+
+# Run MSPC from Command Line or as an R Package
+
+The MSPC method is implemented as a
+[C# .NET library](https://www.nuget.org/packages/Genometric.MSPC.Core) 
+with two interfaces: A cross-platform command line interface, 
+and an R package. Both interfaces are built on the same library,
+hence they provide the same functionality and produce the same output. 
+
+The documentation for running the package from a terminal on Linux, 
+macOS, and Windows is available at 
+[this page](https://genometric.github.io/MSPC/docs/quick_start).
+The present package, `rmspc`, is developed to run MSPC from R. 
+The package facilitates usage and integration of MSPC with 
+pipelines/scripts written in R. This document explores how
+to use MSPC program from Rstudio, using the `rmspc` package. 
+
+# Prerequisites
+
+A prerequisite for the rmspc package is .NET 5.0 (since it is developed
+on program implemented in C# .NET). You can check if .NET is installed
+using the command `dotnet --info` run in a terminal. 
+If .NET is installed, the output of the command shows the version 
+of the installed framework (should be 5.0 or newer). If not installed,
+you may install following 
+[these instructions](https://dotnet.microsoft.com/download/dotnet/5.0).
+
+
+# Using the rmspc package 
+
+## Installing and loading the package
+
+The installation of the package goes as follows : 
+
+```{r BiocManager, eval=FALSE}
+if (!require("BiocManager"))
+    install.packages("BiocManager")
+BiocManager::install("rmspc")
+```
+
+If the package BiocManager is not installed in the user's computer, 
+it will be installed as well. 
+
+A package only needs to be installed once. We load the `rmspc` package
+into an R session :
+
+```{r initialize, results="hide", warning=FALSE, message=FALSE}
+library(rmspc)
+```
+
+The package has one external function: `mspc`. This is the main function
+of the package that we use to run the MSPC program in R. 
+
+## Required arguments of the mspc function
+
+There are 4 required arguments that the user needs to specify to run the
+`mspc` function. 
+
+These arguments are: 
+
+* `input`: Character vector (file path of BED files) or a GRanges list.
+
+* `replicateType`: Character string. This argument defines the replicate
+type. Possible values : 'Bio', 'Biological', 'Tec', 'Technical'. 
+
+* `stringencyThreshold`: A real number of type `Double`. A threshold 
+on p-values, where peaks with p-value lower than this threshold are
+considered stringent peaks.
+
+* `weakThreshold`: A real number of type `Double`. A threshold on 
+p-values, such that peaks with p-value between this and the stringency
+threshold are considered weak peaks.
+
+More information about the arguments of the `mspc` function can be 
+found in the package documentation.
+
+It is important to note that the `input` argument can be given in 
+two possible formats. 
+
+## Scenario 1: Input as path file to BED files
+
+In this first scenario, we suppose the samples we want to use as 
+input data for the `mspc` function are in a BED file format. We 
+will use for this example the external data available in the package. 
+
+```{r}
+path <- system.file("extdata", package = "rmspc")
+```
+
+We have two sample files available in the directory inst/extdata of 
+the package : 
+
+```{r}
+list.files(path)
+```
+
+More information about these sample files is available in the data
+documentation file. 
+
+We specify the input argument. In this first scenario, the input 
+argument is a character vector. Each element of the vector is a file
+path of a BED file. 
+
+```{r }
+input1 <- paste0(path, "/rep1.bed")
+input2 <- paste0(path, "/rep2.bed")
+input <- c(input1, input2)
+input
+```
+
+When the `mspc` function is called, it creates a number of files in 
+the user's computer. If the user wishes to keep all the files 
+generated in their computer, they can set the argument `keep` to `TRUE`. 
+
+More information regarding this argument is available in the 
+documentation.
+
+We run the `mspc` function as follows : 
+
+```{r}
+results <- mspc(
+    input = input, replicateType = "Technical",
+    stringencyThreshold = 1e-8,
+    weakThreshold = 1e-4, gamma = 1e-8,
+    keep = FALSE,GRanges = TRUE,
+    multipleIntersections = "Lowest",
+    c = 2,alpha = 0.05)
+```
+
+The `mspc` function prints the results of the MSPC program. 
+The first line of the output printed gives the exported directory,
+which is the directory where the files generated by the 
+`mspc` function are created.
+
+The function returns the following:
+
+1. `status`: Integer. The exit status of running the `mspc` function.
+A `0` exit status means the function ran successfully. 
+2. `filesCreated`: List of character vectors. It lists the names of
+the files generated while running the `mspc` function.  
+3. `GrangesObjects`: GRanges list. All the files generated while
+running the `mspc` function are imported as GRanges objects, 
+and are combined into a GRanges list. 
+
+It is important to note that the `mspc` function does not 
+always return these three elements. The output of the function
+depends on the arguments `keep` and `GRanges` given to 
+the `mspc` function. 
+
+In this example, we chose to set the argument `keep` to `FALSE`,
+and `GRanges` to `TRUE`.
+
+By doing so, we chose to ask the function to return all the
+files generated as GRanges objects, but to not keep them in
+the computer. 
+The objects returned by the `mspc` function in this example
+are therefore :
+
+```{r }
+results$status
+head(results$GRangesObjects,3)
+```
+
+Each element of the `GRangesObjects` of the output can be
+accessed as such:
+
+```{r}
+results$GRangesObjects$ConsensusPeaks
+results$GRangesObjects$`rep1/Background`
+```
+
+In order to understand better the output of the `mspc` 
+function, let's go over the files generated while 
+running the `mspc` function. 
+These files are  listed by the `filesCreated` object, 
+returned by the `mspc` function : 
+
+* A log file that contains the execution log : this 
+file contains the information, debugging messages, 
+and exceptions that occurred during the execution.
+
+* Consensus peaks in standard BED and MSPC format.
+
+* One folder per each replicates that contains BED files,
+containing stringent, weak, background, confirmed, discarded,
+true-positive, and false-positive peaks. 
+
+Each category of peaks is defined as such : 
+
+* **Background** :  
+
+Peaks with p-value >= `weakThreshold`.
+
+* **Weak** :
+
+Peaks with `stringencyThreshold` <= p-value < `weakThreshold`.
+
+* **Stringent** : 
+
+Peaks with p-value < `stringencyThreshold`.
+
+* **Confirmed** :   
+
+Peaks that:
+
+1. are supported by at least `c` peaks from replicates, and
+2. their combined stringency (xSquared) satisfies the given
+threshold: xSquared >= the inverse of the right-tailed probability 
+of `gamma` and
+3. if technical replicate, passed all the tests, and if biological
+replicate, passed at least one test.
+
+* **Discarded** :   
+
+Peaks that:
+
+1. does not have minimum required (i.e., `c`) supporting evidence, or
+2. their combined stringency (xSquared) does not satisfy the given
+threshold, or
+3. if technical replicate, failed a test.
+
+* **TruePositive** : 
+
+The confirmed peaks that pass the Benjamini-Hochberg multiple testing
+correction at level `alpha`.
+
+* **FalsePositive** : 
+
+The confirmed peaks that fail Benjamini-Hochberg multiple testing
+correction at level `alpha`.
+
+More information about the files generated by the mspc function
+can be found 
+[here](https://genometric.github.io/MSPC/docs/cli/output).
+
+
+## Scenario 2: Input as Granges objects 
+
+In this second scenario, we suppose the samples we want to use 
+as input data for the `mspc` function are GRanges objects, 
+loaded in the R environment the user is working on.
+
+To exemplify this scenario, we will import the BED files, included
+in the package, as GRanges objects into our R environment. 
+
+In order to do so, we need to install and load the two following 
+Bioconductor packages: `GenomicRanges` and `rtracklayer`. 
+
+```{r eval=FALSE}
+BiocManager::install("GenomicRanges",dependencies = TRUE)
+BiocManager::install("rtracklayer",dependencies = TRUE)
+```
+
+We load these packages to our R session as follows: 
+
+```{r message=FALSE,warning=FALSE}
+library(GenomicRanges)
+library(rtracklayer)
+```
+
+We now import the two BED files, that are available in the 
+folder inst/extdata of the package, as GRanges objects. 
+
+```{r }
+
+path <- system.file("extdata", package = "rmspc")
+input1 <- paste0(path, "/rep1.bed")
+input2 <- paste0(path, "/rep2.bed")
+
+GR1 <- rtracklayer::import(con = input1, format = "bed")
+GR2 <- rtracklayer::import(con = input2, format = "bed")
+
+```
+
+We have now created 2 GRanges objects : **GR1** and **GR2**. 
+Here's what the GR1 object is like:
+
+```{r}
+GR1
+```
+
+We can now combine the GRanges objects, **GR1** and **GR2**, 
+into a GRanges list. 
+A Granges list is a list of several GRanges objects. It is
+defined as such: 
+
+```{r}
+GR <- GenomicRanges::GRangesList("GR1" = GR1, "GR2" = GR2)
+GR
+```
+
+The GRanges list **GR** created is the input we will give 
+to the `mspc` function. 
+
+When we give a Granges list to the `mspc` function as input,
+each GRanges object of the GRanges list is exported as a BED 
+file into the folder specified by the argument `directoryGRangesInput`. 
+
+More information about the `directoryGRangesInput` argument in
+the documentation. 
+
+We now will call the `mspc` function, as follows: 
+
+```{r}
+
+results <- mspc(
+    input = GR, replicateType = "Biological",
+    stringencyThreshold = 1e-8, weakThreshold = 1e-4,
+    gamma =  1e-8, GRanges = TRUE, keep = FALSE,
+    multipleIntersections = "Highest",
+    c = 2,alpha = 0.05)
+```
+
+The objects returned by the `mspc` function in this example are:
+
+```{r}
+results$status
+tail(results$GRangesObjects)
+```
+
+# Session Information
+
+The output in this vignette was produced under the following
+conditions:
+
+```{r SessionInfo}
+sessionInfo()
+```
+
+# Bibliographic references
+
+Jalili, V., Matteucci, M., Masseroli, M., & Morelli, M. J. (2015).
+Using combined evidence from replicates to evaluate ChIP-seq peaks.
+Bioinformatics, 31(17), 2761-2769.
+[Link to the article ](https://doi.org/10.1093/bioinformatics/btv293)
+
+

@@ -1,0 +1,51 @@
+---
+title: "Documentation of the external data"
+author: "Vahid Jalili, Marzia Angela Cremona, Fernando Palluzzi, Meriem Bahda"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+    BiocStyle::html_document:
+        number_sections: yes
+        toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Data Source
+
+The external data used for testing the package are included in the directory `inst/extdata`. The folder contains two files, named `rep1.bed` and `rep2.bed`. The BAM files are downloaded from [UCSC](http://hgdownload.cse.ucsc.edu/goldenpath/hg19/encodeDCC/wgEncodeSydhTfbs/) and peaks are called using MACS2 with arguments `--auto-bimodal -p 0.0001 -g hs`. The BAM files belong to a project studying the MyC transcription factor in K562 human cells, with the filenames as the following:
+
+* wgEncodeSydhTfbsK562CmycStdAlnRep1.bam ->  rep1.bed
+* wgEncodeSydhTfbsK562CmycStdAlnRep2.bam -> rep2.bed
+
+In order to adhere with Bioconductor’s guidelines regarding the size of R package, the called peaks are filtered to include only the peaks on chr1 (the steps to filter the peak are discussed in the next section). Additional BED files for testing are prepared and available from [MSPC’s website](https://genometric.github.io/MSPC/docs/sample_data).
+
+# Filter Peaks
+
+In order to reduce the file sizes in accordance with Bioconductor’s guidelines on package size, we filter the peaks to include only those on chr1. Accordingly, we import the files into an R environment as GRanges objects using the `import` function of the package `rtracklayer` and filter the object to keep only peaks on chr1. The steps are as follows.
+
+```{r eval= FALSE}
+# Install rtracklyer
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("rtracklayer")
+
+# Load the package rtracklyer
+library(rtracklayer)
+
+# Import the BED files using the `import` function.
+rep1 <- rtracklayer::import(con = "rep1.bed",format = "bed")
+rep2 <- rtracklayer::import(con = "rep2.bed",format = "bed")
+
+# Keep peaks on chr1 only
+rep1 <- rep1[seqnames(rep1) =="chr1"]
+rep2 <- rep2[seqnames(rep2) =="chr1"]
+
+# Save the filtered peaks to files using the 
+# `export` method from the `rtracklayer` package.
+export(object = rep1, con = "rep1Reduced.bed")
+export(object = rep2, con = "rep2Reduced.bed")
+```
