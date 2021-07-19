@@ -1,0 +1,2 @@
+Please download .NET 5.0 (or newer) following these instructions : 
+https://dotnet.microsoft.com/download/dotnet/5.0
