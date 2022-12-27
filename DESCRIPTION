@@ -1,7 +1,7 @@
 Package: rmspc
 Type: Package
 Title: Multiple Sample Peak Calling
-Version: 0.99.5
+Version: 1.5.1
 Authors@R: c(person("Vahid", "Jalili", role = "aut",  
                      email = "jalili.vahid@gmail.com"),  
              person("Marzia Angela", "Cremona", role = "aut",  
@@ -43,6 +43,6 @@ License: GPL-3
 Encoding: UTF-8
 URL: https://genometric.github.io/MSPC/
 BugReports: https://github.com/Genometric/MSPC/issues
-SystemRequirements: .NET 5.0
+SystemRequirements: .NET 6.0
 RoxygenNote: 7.1.1
 Config/testthat/edition: 3
