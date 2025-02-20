@@ -54,13 +54,13 @@ to use MSPC program from Rstudio, using the `rmspc` package.
 
 # Prerequisites
 
-A prerequisite for the rmspc package is .NET 6.0 (since it is developed
+A prerequisite for the rmspc package is .NET 8.0 (since it is developed
 on program implemented in C# .NET). You can check if .NET is installed
 using the command `dotnet --info` run in a terminal. 
 If .NET is installed, the output of the command shows the version 
-of the installed framework (should be 6.0 or newer). If not installed,
+of the installed framework (should be 8.0 or newer). If not installed,
 you may install following 
-[these instructions](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).
+[these instructions](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 
 
 # Using the rmspc package 
